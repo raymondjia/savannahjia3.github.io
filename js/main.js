@@ -24,6 +24,7 @@ function showView(name) {
     el.classList.toggle('hidden', k !== name);
     el.classList.toggle('active', k === name);
   });
+  window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 function allWorks() {
@@ -77,8 +78,6 @@ function handleNavClick(e) {
   if (target.dataset.year) {
     showWorks(target.dataset.medium, target.dataset.year);
     closeMenu();
-    $$('.nav-years a').forEach(a => a.classList.remove('active'));
-    target.classList.add('active');
     return;
   }
 
@@ -109,6 +108,12 @@ function showWorks(medium, yearKey) {
 
   worksLabel.textContent = `${mediumLabel}  ·  ${yearKey === 'undated' ? 'Undated' : yearKey}`;
   showView('works');
+  $$('.nav-years a').forEach(a => {
+    const active = a.dataset.medium === medium && a.dataset.year === String(yearKey);
+    a.classList.toggle('active', active);
+    if (active) a.closest('.nav-item').classList.add('open');
+  });
+  buildViewMore(medium, yearKey);
 
   grid.innerHTML = works.map((w, i) => `
     <div class="grid-item" data-index="${i}">
@@ -123,6 +128,40 @@ function showWorks(medium, yearKey) {
   grid.querySelectorAll('.grid-item').forEach(item => {
     item.addEventListener('click', () => openLightbox(parseInt(item.dataset.index)));
   });
+}
+
+/* Navigation after the final artwork, generated from the same content as the menu. */
+function buildViewMore(currentMedium, currentYear) {
+  const container = $('view-more-links');
+  container.replaceChildren();
+  const home = document.createElement('button');
+  home.type = 'button';
+  home.dataset.view = 'home';
+  home.textContent = 'Home';
+  container.append(home);
+  for (const [medium, label] of Object.entries({
+    paintings: 'Paintings', 'works-on-paper': 'Works on Paper', sculpture: 'Sculpture',
+  })) {
+    const works = artworks[medium] || [];
+    const years = [...new Set(works.map(w => w.year).filter(Boolean))].sort((a, b) => b - a);
+    if (works.some(w => !w.year)) years.push('undated');
+    for (const year of years) {
+      if (medium === currentMedium && String(year) === String(currentYear)) continue;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.medium = medium;
+      button.dataset.year = String(year);
+      button.textContent = `${label} · ${year === 'undated' ? 'Undated' : year}`;
+      container.append(button);
+    }
+  }
+  for (const view of ['about', 'contact']) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.view = view;
+    button.textContent = view === 'about' ? 'About' : 'Contact';
+    container.append(button);
+  }
 }
 
 /* ── Featured works on home page ─────────────────────────── */
