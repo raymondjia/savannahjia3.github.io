@@ -1,7 +1,8 @@
 # Savannah Jia — Artwork Metadata
 #
 # This file is the source of truth for the portfolio site.
-# After editing, run `node build.js` locally, or just push — GitHub Actions runs it automatically.
+# After editing, run `npm run prepare-content` and preview, then commit and push.
+# Deployment also rebuilds and validates metadata automatically.
 #
 # Fields:
 #   slug        - filename (no extension). Must match images/{medium}/web/{slug}.jpg

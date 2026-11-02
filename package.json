@@ -3,21 +3,27 @@
   "version": "1.0.0",
   "description": "Savannah Jia — artist portfolio site",
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "images": "node scripts/images.js",
+    "prepare-content": "npm run images && npm run build",
+    "site": "npm run build && node scripts/stage.js",
+    "preview": "npm run site && http-server dist -a 0.0.0.0 -p 8080 -c-1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/savannahjia3/savannahjia3.github.io.git"
+    "url": "git+https://github.com/raymondjia/savannahjia3.github.io.git"
   },
   "keywords": [],
   "author": "",
   "type": "module",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/savannahjia3/savannahjia3.github.io/issues"
+    "url": "https://github.com/raymondjia/savannahjia3.github.io/issues"
   },
-  "homepage": "https://github.com/savannahjia3/savannahjia3.github.io#readme",
+  "homepage": "https://github.com/raymondjia/savannahjia3.github.io#readme",
   "devDependencies": {
-    "js-yaml": "^5.2.1"
+    "http-server": "^14.1.1",
+    "js-yaml": "^5.5.0",
+    "sharp": "^0.35.5"
   }
 }

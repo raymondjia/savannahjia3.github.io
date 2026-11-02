@@ -1,0 +1,12 @@
+{
+  "name": "Savannah portfolio",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "postCreateCommand": "npm ci && mkdir -p uploads/paintings uploads/works-on-paper uploads/sculpture",
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": { "label": "Portfolio preview", "onAutoForward": "openPreview" }
+  },
+  "customizations": {
+    "vscode": { "settings": { "files.exclude": { "node_modules": true, "dist": true } } }
+  }
+}
