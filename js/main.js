@@ -202,6 +202,8 @@ function setupFeatured() {
    ══════════════════════════════════════════════════════════ */
 
 function openLightbox(index) {
+  clearTimeout(lightboxCloseTimer);
+  lbEl.classList.remove('closing');
   state.lbIndex = index;
   const w = state.currentWorks[index];
   if (!w) return;
@@ -219,10 +221,26 @@ function openLightbox(index) {
   exitZoom();
 }
 
+let lightboxCloseTimer;
 function closeLightbox() {
-  lbEl.classList.add('hidden');
-  document.body.classList.remove('lb-open');
-  exitZoom();
+  if (lbEl.classList.contains('hidden') || lbEl.classList.contains('closing')) return;
+  lbEl.classList.add('closing');
+  lightboxCloseTimer = setTimeout(() => {
+    lbEl.classList.add('hidden');
+    lbEl.classList.remove('closing');
+    document.body.classList.remove('lb-open');
+    exitZoom();
+  }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 140);
+}
+
+function animateArtwork(direction) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const center = lbEl.querySelector('.lb-center');
+  center.getAnimations().forEach(animation => animation.cancel());
+  center.animate([
+    { opacity: 0, transform: `translateX(${direction * 16}px)` },
+    { opacity: 1, transform: 'translateX(0)' },
+  ], { duration: 160, easing: 'ease-out' });
 }
 
 function buildInfo(w) {
@@ -244,6 +262,7 @@ function navigate(dir) {
   lbInfo.textContent  = buildInfo(w);
   updateFilmstripActive();
   exitZoom();
+  animateArtwork(dir);
 }
 
 function buildFilmstrip() {
@@ -255,6 +274,7 @@ function buildFilmstrip() {
 
   lbFilmstrip.querySelectorAll('.lb-thumb-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      const direction = parseInt(btn.dataset.index) > state.lbIndex ? 1 : -1;
       state.lbIndex = parseInt(btn.dataset.index);
       const w = state.currentWorks[state.lbIndex];
       lbImg.src = w.img;
@@ -263,6 +283,7 @@ function buildFilmstrip() {
       lbInfo.textContent  = buildInfo(w);
       updateFilmstripActive();
       exitZoom();
+      animateArtwork(direction);
     });
   });
 }

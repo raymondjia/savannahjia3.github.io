@@ -664,3 +664,16 @@ body.lb-open { overflow: hidden; }
 @media (max-width: 800px) {
   .view-more { margin: 0 20px 32px; }
 }
+
+/* Brief lightbox transitions; the artwork remains the focus. */
+.lightbox:not(.hidden) { animation: lightbox-open 160ms ease-out both; }
+.lightbox:not(.hidden) .lb-center { animation: artwork-open 160ms ease-out both; }
+.lightbox.closing:not(.hidden) { animation: lightbox-close 140ms ease-in both; pointer-events: none; }
+.lightbox.closing:not(.hidden) .lb-center { animation: artwork-close 140ms ease-in both; }
+@keyframes lightbox-open { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lightbox-close { from { opacity: 1; } to { opacity: 0; } }
+@keyframes artwork-open { from { transform: scale(.98); } to { transform: scale(1); } }
+@keyframes artwork-close { from { transform: scale(1); } to { transform: scale(.98); } }
+@media (prefers-reduced-motion: reduce) {
+  .lightbox:not(.hidden), .lightbox:not(.hidden) .lb-center { animation: none; }
+}
