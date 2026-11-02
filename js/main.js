@@ -201,15 +201,82 @@ function setupFeatured() {
    LIGHTBOX
    ══════════════════════════════════════════════════════════ */
 
+// Keep a small decoded-image cache rather than downloading the whole collection.
+const readyImages = new Map();
+let artworkRequest = 0;
+let requestedIndex = null;
+function loadArtwork(src) {
+  if (readyImages.has(src)) return readyImages.get(src);
+  const image = new Image();
+  image.src = src;
+  const ready = image.decode().then(() => image).catch(error => {
+    readyImages.delete(src);
+    throw error;
+  });
+  readyImages.set(src, ready);
+  if (readyImages.size > 5) readyImages.delete(readyImages.keys().next().value);
+  return ready;
+}
+function preloadNeighbors(index) {
+  for (const adjacent of [index - 1, index + 1]) {
+    const work = state.currentWorks[adjacent];
+    if (work) loadArtwork(work.img).catch(() => {});
+  }
+}
+async function selectArtwork(index) {
+  const work = state.currentWorks[index];
+  if (!work) return;
+  const request = ++artworkRequest;
+  requestedIndex = index;
+  lbEl.setAttribute('aria-busy', 'true');
+  try {
+    const image = await loadArtwork(work.img);
+    if (request !== artworkRequest) return;
+    const direction = index > state.lbIndex ? 1 : -1;
+    // Insert the actual decoded node so the old photo stays painted until ready.
+    image.id = 'lb-img';
+    image.alt = work.title;
+    if (image !== lbImg) {
+      image.onclick = enterZoom;
+      lbImg.replaceWith(image);
+      lbImg = image;
+    }
+    state.lbIndex = index;
+    lbTitle.textContent = work.title;
+    lbInfo.textContent = buildInfo(work);
+    updateFilmstripActive();
+    exitZoom();
+    animateArtwork(direction);
+    preloadNeighbors(index);
+  } catch {
+    if (request === artworkRequest) {
+      lbInfo.textContent = 'Image could not load. Please try again.';
+    }
+  } finally {
+    if (request === artworkRequest) {
+      requestedIndex = null;
+      lbEl.removeAttribute('aria-busy');
+    }
+  }
+}
+
 function openLightbox(index) {
+  ++artworkRequest;
+  requestedIndex = null;
+  lbEl.removeAttribute('aria-busy');
   clearTimeout(lightboxCloseTimer);
   lbEl.classList.remove('closing');
   state.lbIndex = index;
   const w = state.currentWorks[index];
   if (!w) return;
 
-  lbImg.src = w.img;
-  lbImg.alt = w.title;
+  const openingImage = new Image();
+  openingImage.id = 'lb-img';
+  openingImage.src = w.img;
+  openingImage.alt = w.title;
+  openingImage.onclick = enterZoom;
+  lbImg.replaceWith(openingImage);
+  lbImg = openingImage;
   lbTitle.textContent = w.title;
   lbInfo.textContent  = buildInfo(w);
 
@@ -219,11 +286,16 @@ function openLightbox(index) {
   lbEl.classList.remove('hidden');
   document.body.classList.add('lb-open');
   exitZoom();
+  loadArtwork(w.img).catch(() => {});
+  preloadNeighbors(index);
 }
 
 let lightboxCloseTimer;
 function closeLightbox() {
   if (lbEl.classList.contains('hidden') || lbEl.classList.contains('closing')) return;
+  ++artworkRequest;
+  requestedIndex = null;
+  lbEl.removeAttribute('aria-busy');
   lbEl.classList.add('closing');
   lightboxCloseTimer = setTimeout(() => {
     lbEl.classList.add('hidden');
@@ -238,8 +310,8 @@ function animateArtwork(direction) {
   const center = lbEl.querySelector('.lb-center');
   center.getAnimations().forEach(animation => animation.cancel());
   center.animate([
-    { opacity: 0, transform: `translateX(${direction * 16}px)` },
-    { opacity: 1, transform: 'translateX(0)' },
+    { transform: `translateX(${direction * 12}px)` },
+    { transform: 'translateX(0)' },
   ], { duration: 160, easing: 'ease-out' });
 }
 
@@ -252,17 +324,9 @@ function buildInfo(w) {
 }
 
 function navigate(dir) {
-  const next = state.lbIndex + dir;
+  const next = (requestedIndex ?? state.lbIndex) + dir;
   if (next < 0 || next >= state.currentWorks.length) return;
-  state.lbIndex = next;
-  const w = state.currentWorks[next];
-  lbImg.src = w.img;
-  lbImg.alt = w.title;
-  lbTitle.textContent = w.title;
-  lbInfo.textContent  = buildInfo(w);
-  updateFilmstripActive();
-  exitZoom();
-  animateArtwork(dir);
+  selectArtwork(next);
 }
 
 function buildFilmstrip() {
@@ -274,16 +338,7 @@ function buildFilmstrip() {
 
   lbFilmstrip.querySelectorAll('.lb-thumb-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const direction = parseInt(btn.dataset.index) > state.lbIndex ? 1 : -1;
-      state.lbIndex = parseInt(btn.dataset.index);
-      const w = state.currentWorks[state.lbIndex];
-      lbImg.src = w.img;
-      lbImg.alt = w.title;
-      lbTitle.textContent = w.title;
-      lbInfo.textContent  = buildInfo(w);
-      updateFilmstripActive();
-      exitZoom();
-      animateArtwork(direction);
+      selectArtwork(parseInt(btn.dataset.index));
     });
   });
 }
